@@ -1,4 +1,3 @@
-
 #include <ros.h>
 #include <geometry_msgs/Point32.h>
 #include <mcp_can.h>
@@ -7,7 +6,7 @@
 ros::NodeHandle nh;
 
 geometry_msgs::Point32 msg;
-ros::Publisher pub("/pak/msg", &msg);
+ros::Publisher pub("/optical/msg", &msg);
 
 // Function prototype, needed for optional parameter
 bool IsParamValid(char *param, String str_pre, bool hex = true);
@@ -16,7 +15,11 @@ bool IsParamValid(char *param, String str_pre, bool hex = true);
 #define VERSRION "2.10"  //PAA5101 EVK FW version
 
 MCP_CAN CAN0(10);     // Set CS to pin 10
-const uint32_t CAN_ID = 0x901; // optical can_id
+//const uint32_t CAN_ID = 0x000000C9; // optical can_id
+const uint32_t CAN_ID = 0x000000CA; // optical can_id
+
+const uint32_t delay_can_ms = 10;
+const uint32_t delay_uart_ms = 100;  //ROS
 //-----------------------------------------------------------------------
 //For Sensor
 //-----------------------------------------------------------------------
@@ -127,7 +130,7 @@ void setup()
   nh.initNode();
   nh.advertise(pub);
 
-//  Serial.begin(115200);
+  //  Serial.begin(115200);
 
   /* MCP CAN */
   if (CAN0.begin(MCP_STDEXT, CAN_1000KBPS, MCP_16MHZ) == CAN_OK)
@@ -232,7 +235,7 @@ void loop()
 
   pub.publish( &msg );
   nh.spinOnce();
-  delay(100);
+  delay(delay_uart_ms);
 }
 
 //-----------------------------------------------------------------------
@@ -358,8 +361,8 @@ void PAA5101_SETTING_V0P3(void)
   Sensor_WriteRead_Reg(0x05, 0xA8);
   Sensor_WriteRead_Reg(0x07, 0xCC);
   Sensor_WriteRead_Reg(0x0A, 0x17);
-  Sensor_WriteRead_Reg(0x0D, 0x05);
-  Sensor_WriteRead_Reg(0x0E, 0x05);
+  Sensor_WriteRead_Reg(0x0D, 0x04);
+  Sensor_WriteRead_Reg(0x0E, 0x04);
   Sensor_WriteRead_Reg(0x1B, 0x43);
   Sensor_WriteRead_Reg(0x25, 0x2E);
   Sensor_WriteRead_Reg(0x26, 0x35);
@@ -508,8 +511,8 @@ void PAA5101_LD_MODE(void)
   Sensor_WriteRead_Reg(0x09, 0x5A); // disable write protect
   Sensor_WriteRead_Reg(0x53, 0x01);
   Sensor_WriteRead_Reg(0x07, 0xCC);
-  Sensor_WriteRead_Reg(0x0D, 0x05);
-  Sensor_WriteRead_Reg(0x0E, 0x05);
+  Sensor_WriteRead_Reg(0x0D, 0x04);
+  Sensor_WriteRead_Reg(0x0E, 0x04);
   Sensor_WriteRead_Reg(0x19, 0x24);
   Sensor_Write_Reg(0x7F, 0x01);     // Bank1, not allowed to perform Sensor_WriteRead_Reg
   Sensor_WriteRead_Reg(0x1D, 0x18);
@@ -721,8 +724,8 @@ ISR(TIMER2_OVF_vect)
 void CANSEND(signed int *dx16, signed int *dy16) {
   int x_value = *dx16;
   int y_value = *dy16;
-//    int x_value = 0;
-//  int y_value = 0;
+  //  int x_value = 0;
+  //  int y_value = 0;
 
   byte data[8];
   data[0] = (x_value >> 24) & 0xFF;
@@ -736,5 +739,5 @@ void CANSEND(signed int *dx16, signed int *dy16) {
   data[7] = y_value & 0xFF;
 
   byte sndStat = CAN0.sendMsgBuf(CAN_ID, 1, 8, data);
-  delay(100);   // send data per 100ms
+  delay(delay_can_ms);   // send data per 100ms
 }
