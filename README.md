@@ -7,9 +7,7 @@ using Arduino Nano, PAA5102 Optical Flow Sensor and MCP25625 CAN shield
 
 
 # RUN
-Streaming CAN Messages to CAN0
-
-> Data Structure: [ 4bytes = X value, 4bytes = Y value ]
+Streaming CAN Messages 
 
 For ROS, run this command: 
 
