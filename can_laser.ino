@@ -18,8 +18,8 @@ MCP_CAN CAN0(10);     // Set CS to pin 10
 const uint32_t CAN_ID = 0x000000C9; // optical can_id
 //const uint32_t CAN_ID = 0x000000CA; // optical can_id
 
-const uint32_t delay_can_ms = 10;
-const uint32_t delay_uart_ms = 100;  //ROS
+const uint32_t delay_can_ms = 10;   //delay in CAN
+const uint32_t delay_uart_ms = 100;  //delay in ROS
 //-----------------------------------------------------------------------
 //For Sensor
 //-----------------------------------------------------------------------
@@ -582,28 +582,28 @@ void Sensor_ReadMotion(signed int *dx16, signed int *dy16)
   data_lsb = Sensor_Read_Reg(0x76);
   FIQ[Index] = ((unsigned int)(data_msb)) * 256 + (unsigned int)data_lsb;
 
-  if (LightSrcCtrl == AUTO) //this statement is not necessary just for testing
-    if (Index == 7) //every 8 sampling to decide LD/LED mode
-    {
-      for (loopi = 0; loopi < 8; loopi++)
-      {
-        FIQ_SUM = FIQ_SUM + FIQ[loopi];
-      }
-
-      if (LightMode == LED && FIQ_SUM < LED2LD_TH) // Check if change to LD MODE
-      {
-        PAA5101_LD_MODE();
-        delay(DELAY_MS);  // delay for light source change
-        Sensor_Write_Reg(0x03, 0x00);
-      }
-      else if (LightMode == LASER && FIQ_SUM < LD2LED_TH) // Check if change to external LED MODE
-      {
-        PAA5101_EXTLED_MODE();
-        delay(DELAY_MS);  // delay for light source change
-        Sensor_Write_Reg(0x03, 0x00);
-      }
-    }
-  Index = (Index + 1) & 0x07;
+ // if (LightSrcCtrl == AUTO) //this statement is not necessary just for testing
+ //   if (Index == 7) //every 8 sampling to decide LD/LED mode
+ //   {
+ //     for (loopi = 0; loopi < 8; loopi++)
+ //     {
+ //       FIQ_SUM = FIQ_SUM + FIQ[loopi];
+ //     }
+ //
+ //     if (LightMode == LED && FIQ_SUM < LED2LD_TH) // Check if change to LD MODE
+ //     {
+ //       PAA5101_LD_MODE();
+ //       delay(DELAY_MS);  // delay for light source change
+ //       Sensor_Write_Reg(0x03, 0x00);
+ //     }
+ //     else if (LightMode == LASER && FIQ_SUM < LD2LED_TH) // Check if change to external LED MODE
+ //     {
+ //       PAA5101_EXTLED_MODE();
+ //       delay(DELAY_MS);  // delay for light source change
+ //       Sensor_Write_Reg(0x03, 0x00);
+ //     }
+ //  }
+ // Index = (Index + 1) & 0x07;
   // LD/LED switch process END
 
   // Read out delta X/Y motion
@@ -723,11 +723,14 @@ ISR(TIMER2_OVF_vect)
 };
 
 void CANSEND(signed int dx16, signed int dy16) {
-  byte data[2];
+  byte data[4];
+ 
+  data[0] = (dx16 >> 8) & 0xFF;
+  data[1] = dx16 & 0xFF;
 
-  data[0] = (dy16 >> 8) & 0xFF;
-  data[1] = dy16 & 0xFF;
-
-  byte sndStat = CAN0.sendMsgBuf(CAN_ID, 1, 2, data);
-  delay(delay_can_ms);   // send data per 100ms
+  data[2] = (dy16 >> 8) & 0xFF;
+  data[3] = dy16 & 0xFF;
+  byte sndStat = CAN0.sendMsgBuf(CAN_ID, 1, 4, data);
+  delay(delay_can_ms);   
 }
+
